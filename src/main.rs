@@ -6,13 +6,41 @@ use termion::{clear, cursor};
 use std::io::{stdout, Write};
 use std::{thread, time};
 
-enum Material {
-    Sand,
+trait Material {
+    fn new(x: u16, y: u16) -> Self;
+
+    fn drop(&mut self) {
+        // if available space
+        //self.y += 1;
+    }
 }
 
-struct Pixel {
-    position: usize,
-    material: Material,
+struct Sand {
+    x: u16,
+    y: u16,
+    glyph: &'static str,
+}
+
+impl Sand {
+    fn translate(&mut self, x: u16, y: u16) {
+        self.x = x;
+        self.y = y;
+    }
+}
+
+impl Material for Sand {
+    fn new(x: u16, y: u16) -> Sand {
+        Sand {
+            x: x,
+            y: y,
+            glyph: "▒",
+        }
+    }
+
+    fn drop(&mut self) {
+        // or use translate?
+        self.y += 1;
+    }
 }
 
 fn main() {
@@ -22,22 +50,28 @@ fn main() {
 
     let (width, height) = terminal_width_height();
 
-    const BLOCK: &'static str = "▒";
-    let max_frames = width; // TODO for demo purposes only
+    let max_frames = height;
     let delay = time::Duration::from_millis(33);
 
     write!(stdout, "{}{}", clear::All, cursor::Hide).unwrap();
 
-    let mut count = 0;
+    // initialize material
+    let mut test: Sand = Material::new(1, 1);
+
+    let mut frames = 0;
     loop {
-        write!(stdout, "{}", cursor::Goto(count, 1)).unwrap();
-        write!(stdout, "{}", BLOCK).unwrap();
+        //test.translate(frames, 1); //
+        test.drop();
+
+        write!(stdout, "{}", cursor::Goto(test.x, test.y)).unwrap();
+        write!(stdout, "{}", test.glyph).unwrap();
 
         // increment
         stdout.flush().unwrap();
         thread::sleep(delay);
-        count += 1;
-        if count >= max_frames {
+        frames += 1;
+        // bail out
+        if frames >= max_frames {
             break;
         }
     }
