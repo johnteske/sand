@@ -5,4 +5,6 @@ pub trait Material {
         // if available space
         //self.y += 1;
     }
+
+    fn settle(&mut self) {}
 }

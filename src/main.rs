@@ -15,13 +15,6 @@ struct Sand {
     glyph: &'static str,
 }
 
-impl Sand {
-    fn translate(&mut self, x: u16, y: u16) {
-        self.x = x;
-        self.y = y;
-    }
-}
-
 impl Material for Sand {
     fn new(x: u16, y: u16) -> Sand {
         Sand {
@@ -31,9 +24,17 @@ impl Material for Sand {
         }
     }
 
+    // if space below is empty
     fn drop(&mut self) {
-        // or use translate?
         self.y += 1;
+    }
+
+    // if space below and diagonal
+    // always check both directions but make the choice based on even/odd frame
+    fn settle(&mut self) {
+        self.y += 1;
+        self.x += 1;
+        //self.x -= 1;
     }
 }
 
@@ -45,32 +46,41 @@ fn main() {
     let (width, height) = terminal_width_height();
 
     let max_frames = height;
-    let delay = time::Duration::from_millis(33);
+    const FPS: u64 = 15;
+    let delay = time::Duration::from_millis(1000 / FPS);
 
     write!(stdout, "{}{}", clear::All, cursor::Hide).unwrap();
 
-    // initialize material
+    // TODO array of materials
+    // add a single-cell border around the screen to avoid the need to boundary-check
+    // --which would also help the coordinates of termion being 1,1-origin
+
+    // initialize material // TODO for all
     let mut test: Sand = Material::new(1, 1);
 
     let mut frames = 0;
     loop {
-        // clear screen between frames, for now
-        write!(stdout, "{}{}", clear::All, cursor::Hide).unwrap();
-
-        //test.translate(frames, 1); //
-        test.drop();
-
-        write!(stdout, "{}", cursor::Goto(test.x, test.y)).unwrap();
-        write!(stdout, "{}", test.glyph).unwrap();
-
-        // increment
-        stdout.flush().unwrap();
-        thread::sleep(delay);
-        frames += 1;
-        // bail out
         if frames >= max_frames {
             break;
         }
+
+        // clear screen between frames
+        write!(stdout, "{}{}", clear::All, cursor::Hide).unwrap();
+
+        // calculate material change // TODO for all
+        test.drop();
+
+        // write glyph // TODO for all
+        write!(stdout, "{}{}", cursor::Goto(test.x, test.y), test.glyph).unwrap();
+
+        // write to screen
+        stdout.flush().unwrap();
+
+        // wait
+        thread::sleep(delay);
+
+        // increment
+        frames += 1;
     }
 
     write!(stdout, "{}{}", termion::clear::All, termion::cursor::Show)
