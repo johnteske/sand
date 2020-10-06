@@ -6,14 +6,8 @@ use termion::{clear, cursor};
 use std::io::{stdout, Write};
 use std::{thread, time};
 
-trait Material {
-    fn new(x: u16, y: u16) -> Self;
-
-    fn drop(&mut self) {
-        // if available space
-        //self.y += 1;
-    }
-}
+mod material;
+use material::Material;
 
 struct Sand {
     x: u16,
@@ -60,6 +54,9 @@ fn main() {
 
     let mut frames = 0;
     loop {
+        // clear screen between frames, for now
+        write!(stdout, "{}{}", clear::All, cursor::Hide).unwrap();
+
         //test.translate(frames, 1); //
         test.drop();
 
