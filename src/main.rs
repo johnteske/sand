@@ -44,21 +44,22 @@ fn main() {
     let mut stdout = stdout.into_raw_mode().unwrap();
 
     let (width, height) = terminal_width_height();
+    let area = width * height;
 
-    let max_frames = height;
     const FPS: u64 = 15;
     let delay = time::Duration::from_millis(1000 / FPS);
+    let max_frames = height;
+    let mut frames = 0;
 
     write!(stdout, "{}{}", clear::All, cursor::Hide).unwrap();
 
-    // TODO array of materials
-    // add a single-cell border around the screen to avoid the need to boundary-check
+    // array of materials
+    let mut vec: Vec<Sand> = Vec::with_capacity(area as usize);
+    // TODO add a single-cell border around the screen to avoid the need to boundary-check
     // --which would also help the coordinates of termion being 1,1-origin
+    vec.push(Sand::new(1, 1));
+    vec.push(Sand::new(3, 1));
 
-    // initialize material // TODO for all
-    let mut test: Sand = Material::new(1, 1);
-
-    let mut frames = 0;
     loop {
         if frames >= max_frames {
             break;
@@ -67,13 +68,17 @@ fn main() {
         // clear screen between frames
         write!(stdout, "{}{}", clear::All, cursor::Hide).unwrap();
 
-        // calculate material change // TODO for all
-        test.drop();
+        // TODO sort by y position
+        for m in vec.iter_mut() {
+            // calculate material change
+            m.drop();
+            //m.settle();
 
-        // write glyph // TODO for all
-        write!(stdout, "{}{}", cursor::Goto(test.x, test.y), test.glyph).unwrap();
+            // write glyph
+            write!(stdout, "{}{}", cursor::Goto(m.x, m.y), m.glyph).unwrap();
+        }
 
-        // write to screen
+        // write to stdout
         stdout.flush().unwrap();
 
         // wait
