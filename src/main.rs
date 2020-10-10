@@ -23,7 +23,7 @@ impl Material for Sand {
     fn new(x: u16, y: u16) -> Sand {
         Sand {
             point: Point { x, y },
-            glyph: "▒",
+            glyph: "█",
         }
     }
 
@@ -36,8 +36,7 @@ impl Material for Sand {
     // always check both directions but make the choice based on even/odd frame
     fn settle(&mut self) {
         self.point.y += 1;
-        self.point.x += 1;
-        //self.x -= 1;
+        self.point.x += 1; // or -=
     }
 }
 
@@ -61,7 +60,12 @@ fn main() {
     // TODO add a single-cell border around the screen to avoid the need to boundary-check
     // --which would also help the coordinates of termion being 1,1-origin
     vec.push(Sand::new(1, 1));
+    vec.push(Sand::new(1, 2));
     vec.push(Sand::new(3, 1));
+
+    fn xyToIndex(width: u16, x: u16, y: u16) -> u16 {
+        return (x & (width - 1)) + (y & (width - 1)) * width;
+    }
 
     loop {
         if frames >= max_frames {
@@ -71,14 +75,32 @@ fn main() {
         // clear screen between frames
         write!(stdout, "{}{}", clear::All, cursor::Hide).unwrap();
 
-        // TODO sort by y position
-        for m in vec.iter_mut() {
-            // calculate material change
-            m.drop();
+        //        // consider gravity (drop) first,
+        //        // sort by y position to calculate bottom rows first
+        //        vec.sort_unstable_by(|a, b|
+        //            xyToIndex(width, b.point.x, b.point.y).cmp(
+        //            &xyToIndex(width, a.point.x, a.point.y))
+        //        );
+
+        for i in 0..vec.len() {
+            // calculate drop
+            let index_below = vec
+                .iter()
+                .position(|r| r.point.x == vec[i].point.x && r.point.y == vec[i].point.y + 1);
+            if vec[i].point.y < height && index_below.is_none() {
+                vec[i].drop();
+            }
+
             //m.settle();
 
             // write glyph
-            write!(stdout, "{}{}", cursor::Goto(m.point.x, m.point.y), m.glyph).unwrap();
+            write!(
+                stdout,
+                "{}{}",
+                cursor::Goto(vec[i].point.x, vec[i].point.y),
+                vec[i].glyph
+            )
+            .unwrap();
         }
 
         // write to stdout
