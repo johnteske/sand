@@ -9,31 +9,34 @@ use std::{thread, time};
 mod material;
 use material::Material;
 
-struct Sand {
+struct Point {
     x: u16,
     y: u16,
+}
+
+struct Sand {
+    point: Point,
     glyph: &'static str,
 }
 
 impl Material for Sand {
     fn new(x: u16, y: u16) -> Sand {
         Sand {
-            x: x,
-            y: y,
+            point: Point { x, y },
             glyph: "▒",
         }
     }
 
     // if space below is empty
     fn drop(&mut self) {
-        self.y += 1;
+        self.point.y += 1;
     }
 
     // if space below and diagonal
     // always check both directions but make the choice based on even/odd frame
     fn settle(&mut self) {
-        self.y += 1;
-        self.x += 1;
+        self.point.y += 1;
+        self.point.x += 1;
         //self.x -= 1;
     }
 }
@@ -75,7 +78,7 @@ fn main() {
             //m.settle();
 
             // write glyph
-            write!(stdout, "{}{}", cursor::Goto(m.x, m.y), m.glyph).unwrap();
+            write!(stdout, "{}{}", cursor::Goto(m.point.x, m.point.y), m.glyph).unwrap();
         }
 
         // write to stdout
