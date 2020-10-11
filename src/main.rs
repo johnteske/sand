@@ -1,13 +1,10 @@
-extern crate termion;
-
-use std::f64::consts::PI;
-
 use rand::prelude::*;
 use termion::raw::IntoRawMode;
 use termion::{clear, cursor};
 
-use std::io::{stdout, Write};
 use std::{thread, time};
+use std::f64::consts::PI;
+use std::io::{stdout, Write};
 
 struct Point {
     x: u16,
@@ -20,53 +17,50 @@ impl Point {
     }
 }
 
-fn drop_or_settle(point: &Point, points_below: Vec<bool>, frame: u16) -> Point {
+fn drop_or_settle(point: &Point, points_below: Vec<bool>, frame: u16) -> Option<Point> {
     let is_even = (frame & 1) == 0;
 
     // drop
     // s
     if points_below[1] {
-        return Point {
+        return Some(Point {
             x: point.x,
             y: point.y + 1,
-        };
+        });
     }
 
     // settle
     if points_below[0] && points_below[2] {
         if is_even {
             // sw
-            return Point {
+            return Some(Point {
                 x: point.x - 1,
                 y: point.y + 1,
-            };
+            });
         }
         // se
-        return Point {
+        return Some(Point {
             x: point.x + 1,
             y: point.y + 1,
-        };
+        });
     }
     // sw
     if points_below[0] {
-        return Point {
+        return Some(Point {
             x: point.x - 1,
             y: point.y + 1,
-        };
+        });
     }
     // se
     if points_below[2] {
-        return Point {
+        return Some(Point {
             x: point.x + 1,
             y: point.y + 1,
-        };
+        });
     }
 
     // noop
-    return Point {
-        x: point.x,
-        y: point.y,
-    };
+    return None;
 }
 
 fn main() {
@@ -90,7 +84,8 @@ fn main() {
     // --which would also help the coordinates of termion being 1,1-origin
 
     // populate screen
-    // TODO this looks like it streams from the center of the screen
+    // TODO this looks like it streams from the center of the screen,
+    // but that also may be an issue with the sorting
     let mut rng = rand::thread_rng();
     for _ in 1..99 {
         let a = rng.gen::<f64>() * 2.0 * PI;
@@ -99,22 +94,23 @@ fn main() {
         let y: u16 = (r * a.sin()) as u16;
         // do not add point if exists already
         if vec.iter().position(|r| r.x == x && r.y == y).is_none() {
-            vec.push(Point::new(x + (width / 2), y + (height / 2)));
+            vec.push(Point::new(x + (width / 2), y + (height / 2) - (height / 3)));
         }
     }
 
+    let mut moves = 1; // how many moves were made
     loop {
-        if frames >= max_frames {
+        // exit if nothing moved or
+        // max_frames has been reached
+        if moves == 0 || frames >= max_frames {
             break;
         }
 
+        moves = 0;
+
         // TODO sort by y
         for i in 0..vec.len() {
-            // erase glyph before move
-            // TODO only erase if moving
-            write!(stdout, "{}{}", cursor::Goto(vec[i].x, vec[i].y), " ").unwrap();
-
-            vec[i] = drop_or_settle(
+            let new_point = drop_or_settle(
                 &vec[i],
                 vec![
                     // sw
@@ -141,8 +137,17 @@ fn main() {
                 frames,
             );
 
-            // write glyph
-            write!(stdout, "{}{}", cursor::Goto(vec[i].x, vec[i].y), "■").unwrap();
+            match new_point {
+                Some(p) => {
+                    moves += 1;
+                    // erase glyph before move
+                    write!(stdout, "{}{}", cursor::Goto(vec[i].x, vec[i].y), " ").unwrap();
+                    vec[i] = p;
+                    // write glyph
+                    write!(stdout, "{}{}", cursor::Goto(vec[i].x, vec[i].y), "■").unwrap();
+                }
+                None => {}
+            }
         }
 
         // write to stdout
