@@ -2,9 +2,9 @@ use rand::prelude::*;
 use termion::raw::IntoRawMode;
 use termion::{clear, color, cursor};
 
-use std::{thread, time};
 use std::f64::consts::PI;
 use std::io::{stdout, Write};
+use std::{thread, time};
 
 struct Point {
     x: u16,
@@ -110,6 +110,7 @@ fn main() {
         moves = 0;
 
         // TODO sort by y
+        vec.sort_by(|a, b| b.y.partial_cmp(&a.y).unwrap());
         for i in 0..vec.len() {
             let new_point = drop_or_settle(
                 &vec[i],
@@ -161,8 +162,14 @@ fn main() {
         frames += 1;
     }
 
-    write!(stdout, "{}{}", termion::clear::All, termion::cursor::Show)
-        .expect("Unable to restore terminal");
+    write!(
+        stdout,
+        "{}{}{}",
+        termion::clear::All,
+        cursor::Goto(1, 1),
+        termion::cursor::Show
+    )
+    .expect("Unable to restore terminal");
 }
 
 fn terminal_width_height() -> (u16, u16) {
