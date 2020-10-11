@@ -1,6 +1,6 @@
 use rand::prelude::*;
 use termion::raw::IntoRawMode;
-use termion::{clear, cursor};
+use termion::{clear, color, cursor};
 
 use std::{thread, time};
 use std::f64::consts::PI;
@@ -73,10 +73,11 @@ fn main() {
 
     const FPS: u64 = 8;
     let delay = time::Duration::from_millis(1000 / FPS);
-    let max_frames = height;
+    let max_frames = 99;
     let mut frames = 0;
 
     write!(stdout, "{}{}", clear::All, cursor::Hide).unwrap();
+    write!(stdout, "{}", color::Fg(color::Yellow)).unwrap();
 
     // array of materials
     let mut vec: Vec<Point> = Vec::with_capacity(area as usize);
