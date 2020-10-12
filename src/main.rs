@@ -1,9 +1,11 @@
 use rand::prelude::*;
+use termion::event::Key;
+use termion::input::TermRead;
 use termion::raw::IntoRawMode;
-use termion::{clear, color, cursor};
+use termion::{clear, color, cursor, style};
 
 use std::f64::consts::PI;
-use std::io::{stdout, Write};
+use std::io::{stdin, stdout, Write};
 use std::{thread, time};
 
 struct Point {
@@ -67,6 +69,7 @@ fn main() {
     let stdout = stdout();
     let stdout = stdout.lock();
     let mut stdout = stdout.into_raw_mode().unwrap();
+    let stdin = stdin();
 
     let (width, height) = terminal_width_height();
     let area = width * height;
@@ -143,6 +146,7 @@ fn main() {
                 Some(p) => {
                     moves += 1;
                     // erase glyph before move
+                    // TODO only erase if this position will be empty
                     write!(stdout, "{}{}", cursor::Goto(vec[i].x, vec[i].y), " ").unwrap();
                     vec[i] = p;
                     // write glyph
@@ -160,6 +164,16 @@ fn main() {
 
         // increment
         frames += 1;
+    }
+
+    write!(stdout, "{}", style::Reset).unwrap();
+
+    for c in stdin.keys() {
+        match c.unwrap() {
+            Key::Char('q') => break,
+            _ => write!(stdout, "{}Press 'q' to exit", cursor::Goto(1, 1),).unwrap(),
+        }
+        stdout.flush().unwrap();
     }
 
     write!(
