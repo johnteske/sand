@@ -6,7 +6,7 @@ use termion::{clear, color, cursor, style};
 
 use std::f64::consts::PI;
 use std::io::{stdin, stdout, Write};
-use std::{thread, time};
+use std::{cmp, thread, time};
 
 struct Point {
     x: u16,
@@ -72,6 +72,7 @@ fn main() {
     let stdin = stdin();
 
     let (width, height) = terminal_width_height();
+    let shortest = cmp::min(width, height);
     let area = width * height;
 
     const FPS: u64 = 8;
@@ -89,24 +90,19 @@ fn main() {
 
     // populate screen
     let mut rng = rand::thread_rng();
-    let radius = (height / 3) as f64;
+    let radius = (shortest / 3) as f64;
     let circle_area = (PI * radius * radius) as u16;
     for _ in 0..circle_area {
         let a = rng.gen::<f64>() * 2.0 * PI;
         let r = radius * (rng.gen::<f64>()).sqrt();
         let x = r * a.cos();
         let y = r * a.sin();
-        let x: u16 = (x + radius) as u16;
-        let y: u16 = (y + radius) as u16;
+        let x: u16 = (x + ((width / 2) as f64)) as u16;
+        let y: u16 = (y + ((height / 2) as f64)) as u16;
 
         if vec.iter().position(|r| r.x == x && r.y == y).is_none() {
             vec.push(Point::new(x, y));
         }
-    }
-
-    for p in vec.iter_mut() {
-        p.x = p.x + (width / 2);
-        p.y = p.y + (height / 2) - (height / 3);
     }
 
     let mut moves = 1; // how many moves were made
