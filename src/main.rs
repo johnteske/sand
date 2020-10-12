@@ -88,18 +88,25 @@ fn main() {
     // --which would also help the coordinates of termion being 1,1-origin
 
     // populate screen
-    // TODO this looks like it streams from the center of the screen,
-    // but that also may be an issue with the sorting
     let mut rng = rand::thread_rng();
-    for _ in 1..99 {
+    let radius = (height / 3) as f64;
+    let circle_area = (PI * radius * radius) as u16;
+    for _ in 0..circle_area {
         let a = rng.gen::<f64>() * 2.0 * PI;
-        let r = ((height / 3) as f64) * (rng.gen::<f64>()).sqrt();
-        let x: u16 = (r * a.cos()) as u16;
-        let y: u16 = (r * a.sin()) as u16;
-        // do not add point if exists already
+        let r = radius * (rng.gen::<f64>()).sqrt();
+        let x = r * a.cos();
+        let y = r * a.sin();
+        let x: u16 = (x + radius) as u16;
+        let y: u16 = (y + radius) as u16;
+
         if vec.iter().position(|r| r.x == x && r.y == y).is_none() {
-            vec.push(Point::new(x + (width / 2), y + (height / 2) - (height / 3)));
+            vec.push(Point::new(x, y));
         }
+    }
+
+    for p in vec.iter_mut() {
+        p.x = p.x + (width / 2);
+        p.y = p.y + (height / 2) - (height / 3);
     }
 
     let mut moves = 1; // how many moves were made
