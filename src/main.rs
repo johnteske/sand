@@ -2,7 +2,7 @@ use rand::prelude::*;
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
-use termion::{clear, color, cursor, style};
+use termion::{clear, cursor, style};
 
 use std::f64::consts::PI;
 use std::io::{stdin, stdout, Write};
@@ -11,14 +11,16 @@ use std::{cmp, thread, time};
 struct Point {
     x: u16,
     y: u16,
+    material: u8,
 }
 
 impl Point {
-    fn new(x: u16, y: u16) -> Point {
-        Point { x, y }
+    fn new(material: u8, x: u16, y: u16) -> Point {
+        Point { x, y, material }
     }
 }
 
+// TODO add a `match` block to handle different material types
 fn drop_or_settle(point: &Point, points_below: Vec<bool>, frame: u16) -> Option<Point> {
     let is_even = (frame & 1) == 0;
 
@@ -28,6 +30,7 @@ fn drop_or_settle(point: &Point, points_below: Vec<bool>, frame: u16) -> Option<
         return Some(Point {
             x: point.x,
             y: point.y + 1,
+            material: point.material,
         });
     }
 
@@ -38,12 +41,14 @@ fn drop_or_settle(point: &Point, points_below: Vec<bool>, frame: u16) -> Option<
             return Some(Point {
                 x: point.x - 1,
                 y: point.y + 1,
+                material: point.material,
             });
         }
         // se
         return Some(Point {
             x: point.x + 1,
             y: point.y + 1,
+            material: point.material,
         });
     }
     // sw
@@ -51,6 +56,7 @@ fn drop_or_settle(point: &Point, points_below: Vec<bool>, frame: u16) -> Option<
         return Some(Point {
             x: point.x - 1,
             y: point.y + 1,
+            material: point.material,
         });
     }
     // se
@@ -58,6 +64,7 @@ fn drop_or_settle(point: &Point, points_below: Vec<bool>, frame: u16) -> Option<
         return Some(Point {
             x: point.x + 1,
             y: point.y + 1,
+            material: point.material,
         });
     }
 
@@ -81,7 +88,6 @@ fn main() {
     let mut frames = 0;
 
     write!(stdout, "{}{}", clear::All, cursor::Hide).unwrap();
-    write!(stdout, "{}", color::Fg(color::Yellow)).unwrap();
 
     // array of materials
     let mut vec: Vec<Point> = Vec::with_capacity(area as usize);
@@ -89,6 +95,9 @@ fn main() {
     // --which would also help the coordinates of termion being 1,1-origin
 
     // populate screen
+    vec.push(Point::new(b'W', 1, 1));
+    vec.push(Point::new(b'W', width - 1, 1));
+
     let mut rng = rand::thread_rng();
     let radius = (shortest / 3) as f64;
     let circle_area = (PI * radius * radius) as u16;
@@ -101,7 +110,7 @@ fn main() {
         let y: u16 = (y + ((height / 2) as f64)) as u16;
 
         if vec.iter().position(|r| r.x == x && r.y == y).is_none() {
-            vec.push(Point::new(x, y));
+            vec.push(Point::new(b'S', x, y));
         }
     }
 
@@ -153,7 +162,12 @@ fn main() {
                     write!(stdout, "{}{}", cursor::Goto(vec[i].x, vec[i].y), " ").unwrap();
                     vec[i] = p;
                     // write glyph
-                    write!(stdout, "{}{}", cursor::Goto(vec[i].x, vec[i].y), "■").unwrap();
+                    match vec[i].material {
+                        b'S' => {
+                            write!(stdout, "{}{}", cursor::Goto(vec[i].x, vec[i].y), "■").unwrap()
+                        }
+                        _ => write!(stdout, "{}{}", cursor::Goto(vec[i].x, vec[i].y), "X").unwrap(),
+                    }
                 }
                 None => {}
             }
