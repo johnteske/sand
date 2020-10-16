@@ -8,25 +8,38 @@ use std::f64::consts::PI;
 use std::io::{stdin, stdout, Write};
 use std::{cmp, thread, time};
 
+enum Material {
+    Sand,
+    Water,
+}
+
 struct Point {
     x: u16,
     y: u16,
-    material: u8,
+    material: Material,
 }
 
 impl Point {
-    fn new(material: u8, x: u16, y: u16) -> Point {
+    fn new(material: Material, x: u16, y: u16) -> Point {
         Point { x, y, material }
     }
 }
 
+struct Adjacent {
+    //   w: bool,
+    sw: bool,
+    s: bool,
+    se: bool,
+    //    e: bool
+}
+
 // TODO add a `match` block to handle different material types
-fn drop_or_settle(point: &Point, points_below: Vec<bool>, frame: u16) -> Option<Point> {
+fn drop_or_settle(point: &Point, adjacent: Adjacent, frame: u16) -> Option<Point> {
     let is_even = (frame & 1) == 0;
 
     // drop
     // s
-    if points_below[1] {
+    if adjacent.s {
         return Some(Point {
             x: point.x,
             y: point.y + 1,
@@ -35,7 +48,7 @@ fn drop_or_settle(point: &Point, points_below: Vec<bool>, frame: u16) -> Option<
     }
 
     // settle
-    if points_below[0] && points_below[2] {
+    if adjacent.sw && adjacent.se {
         if is_even {
             // sw
             return Some(Point {
@@ -52,7 +65,7 @@ fn drop_or_settle(point: &Point, points_below: Vec<bool>, frame: u16) -> Option<
         });
     }
     // sw
-    if points_below[0] {
+    if adjacent.sw {
         return Some(Point {
             x: point.x - 1,
             y: point.y + 1,
@@ -60,7 +73,7 @@ fn drop_or_settle(point: &Point, points_below: Vec<bool>, frame: u16) -> Option<
         });
     }
     // se
-    if points_below[2] {
+    if adjacent.se {
         return Some(Point {
             x: point.x + 1,
             y: point.y + 1,
@@ -95,8 +108,8 @@ fn main() {
     // --which would also help the coordinates of termion being 1,1-origin
 
     // populate screen
-    vec.push(Point::new(b'W', 1, 1));
-    vec.push(Point::new(b'W', width - 1, 1));
+    vec.push(Point::new(Material::Water, 1, 1));
+    vec.push(Point::new(Material::Water, width - 1, 1));
 
     let mut rng = rand::thread_rng();
     let radius = (shortest / 3) as f64;
@@ -110,7 +123,7 @@ fn main() {
         let y: u16 = (y + ((height / 2) as f64)) as u16;
 
         if vec.iter().position(|r| r.x == x && r.y == y).is_none() {
-            vec.push(Point::new(b'S', x, y));
+            vec.push(Point::new(Material::Sand, x, y));
         }
     }
 
@@ -129,28 +142,43 @@ fn main() {
         for i in 0..vec.len() {
             let new_point = drop_or_settle(
                 &vec[i],
-                vec![
-                    // sw
-                    vec[i].x > 1
+                Adjacent {
+                    // TODO water settling needs to be context-aware
+                    //                    w: match vec[i].material {
+                    //                        Material::Water => {
+                    //                            vec[i].x > 1 && vec.iter()
+                    //                            .position(|r| r.x == vec[i].x - 1 && r.y == vec[i].y)
+                    //                            .is_none()
+                    //                        }
+                    //                        _ =>false
+                    //                    },
+                    sw: vec[i].x > 1
                         && vec[i].y < height
                         && vec
                             .iter()
                             .position(|r| r.x == vec[i].x - 1 && r.y == vec[i].y + 1)
                             .is_none(),
-                    // s
-                    vec[i].y < height
+                    s: vec[i].y < height
                         && vec
                             .iter()
                             .position(|r| r.x == vec[i].x && r.y == vec[i].y + 1)
                             .is_none(),
-                    // se
-                    vec[i].x < width
+                    se: vec[i].x < width
                         && vec[i].y < height
                         && vec
                             .iter()
                             .position(|r| r.x == vec[i].x + 1 && r.y == vec[i].y + 1)
                             .is_none(),
-                ],
+                    // TODO water settling needs to be context-aware
+                    //                    e: match vec[i].material {
+                    //                        Material::Water => {
+                    //                            vec[i].x < width && vec.iter()
+                    //                            .position(|r| r.x == vec[i].x + 1 && r.y == vec[i].y)
+                    //                            .is_none()
+                    //                        }
+                    //                        _ =>false
+                    //                    },
+                },
                 frames,
             );
 
@@ -163,7 +191,7 @@ fn main() {
                     vec[i] = p;
                     // write glyph
                     match vec[i].material {
-                        b'S' => {
+                        Material::Sand => {
                             write!(stdout, "{}{}", cursor::Goto(vec[i].x, vec[i].y), "■").unwrap()
                         }
                         _ => write!(stdout, "{}{}", cursor::Goto(vec[i].x, vec[i].y), "X").unwrap(),
