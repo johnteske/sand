@@ -4,4 +4,6 @@
 - make some terminal eye candy
 
 ## Inspiration
+- https://w-shadow.com/blog/2009/09/29/falling-sand-style-water-simulation/
+- https://gitlab.com/DarrienG/term-fireworks
 - https://maxbittker.com/making-sandspiel
