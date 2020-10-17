@@ -8,14 +8,13 @@ use std::f64::consts::PI;
 use std::io::{stdin, stdout, Write};
 use std::{cmp, thread, time};
 
-struct Point {
-    x: u16,
-    y: u16,
-}
-
+struct Point(u16, u16);
 impl Point {
-    fn new(x: u16, y: u16) -> Point {
-        Point { x, y }
+    fn x(&self) -> u16 {
+        return self.0;
+    }
+    fn y(&self) -> u16 {
+        return self.1;
     }
 }
 
@@ -25,40 +24,25 @@ fn drop_or_settle(point: &Point, points_below: Vec<bool>, frame: u16) -> Option<
     // drop
     // s
     if points_below[1] {
-        return Some(Point {
-            x: point.x,
-            y: point.y + 1,
-        });
+        return Some(Point(point.0, point.1 + 1));
     }
 
     // settle
     if points_below[0] && points_below[2] {
         if is_even {
             // sw
-            return Some(Point {
-                x: point.x - 1,
-                y: point.y + 1,
-            });
+            return Some(Point(point.0 - 1, point.1 + 1));
         }
         // se
-        return Some(Point {
-            x: point.x + 1,
-            y: point.y + 1,
-        });
+        return Some(Point(point.0 + 1, point.1 + 1));
     }
     // sw
     if points_below[0] {
-        return Some(Point {
-            x: point.x - 1,
-            y: point.y + 1,
-        });
+        return Some(Point(point.0 - 1, point.1 + 1));
     }
     // se
     if points_below[2] {
-        return Some(Point {
-            x: point.x + 1,
-            y: point.y + 1,
-        });
+        return Some(Point(point.0 + 1, point.1 + 1));
     }
 
     // noop
@@ -100,8 +84,8 @@ fn main() {
         let x: u16 = (x + ((width / 2) as f64)) as u16;
         let y: u16 = (y + ((height / 2) as f64)) as u16;
 
-        if vec.iter().position(|r| r.x == x && r.y == y).is_none() {
-            vec.push(Point::new(x, y));
+        if vec.iter().position(|r| r.x() == x && r.y() == y).is_none() {
+            vec.push(Point(x, y));
         }
     }
 
@@ -116,30 +100,30 @@ fn main() {
         moves = 0;
 
         // TODO sort by y
-        vec.sort_by(|a, b| b.y.partial_cmp(&a.y).unwrap());
+        vec.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
         for i in 0..vec.len() {
             let new_point = drop_or_settle(
                 &vec[i],
                 vec![
                     // sw
-                    vec[i].x > 1
-                        && vec[i].y < height
+                    vec[i].0 > 1
+                        && vec[i].1 < height
                         && vec
                             .iter()
-                            .position(|r| r.x == vec[i].x - 1 && r.y == vec[i].y + 1)
+                            .position(|r| r.0 == vec[i].0 - 1 && r.1 == vec[i].1 + 1)
                             .is_none(),
                     // s
-                    vec[i].y < height
+                    vec[i].1 < height
                         && vec
                             .iter()
-                            .position(|r| r.x == vec[i].x && r.y == vec[i].y + 1)
+                            .position(|r| r.0 == vec[i].0 && r.1 == vec[i].1 + 1)
                             .is_none(),
                     // se
-                    vec[i].x < width
-                        && vec[i].y < height
+                    vec[i].0 < width
+                        && vec[i].1 < height
                         && vec
                             .iter()
-                            .position(|r| r.x == vec[i].x + 1 && r.y == vec[i].y + 1)
+                            .position(|r| r.0 == vec[i].0 + 1 && r.1 == vec[i].1 + 1)
                             .is_none(),
                 ],
                 frames,
@@ -150,10 +134,10 @@ fn main() {
                     moves += 1;
                     // erase glyph before move
                     // TODO only erase if this position will be empty
-                    write!(stdout, "{}{}", cursor::Goto(vec[i].x, vec[i].y), " ").unwrap();
+                    write!(stdout, "{}{}", cursor::Goto(vec[i].0, vec[i].1), " ").unwrap();
                     vec[i] = p;
                     // write glyph
-                    write!(stdout, "{}{}", cursor::Goto(vec[i].x, vec[i].y), "■").unwrap();
+                    write!(stdout, "{}{}", cursor::Goto(vec[i].0, vec[i].1), "■").unwrap();
                 }
                 None => {}
             }
