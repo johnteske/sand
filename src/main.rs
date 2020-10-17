@@ -11,17 +11,24 @@ use std::{cmp, thread, time};
 mod point;
 use point::Point;
 
-fn drop_or_settle(point: &Point, points_below: Vec<bool>, frame: u16) -> Option<Point> {
+struct Adjacent {
+    w: bool,
+    sw: bool,
+    s: bool,
+    se: bool,
+    e: bool,
+}
+
+fn drop_or_settle(point: &Point, adjacent: Adjacent, frame: u16) -> Option<Point> {
     let is_even = (frame & 1) == 0;
 
     // drop
-    // s
-    if points_below[1] {
+    if adjacent.s {
         return Some(Point(point.x(), point.y() + 1));
     }
 
     // settle
-    if points_below[0] && points_below[2] {
+    if adjacent.sw && adjacent.se {
         if is_even {
             // sw
             return Some(Point(point.x() - 1, point.y() + 1));
@@ -29,12 +36,10 @@ fn drop_or_settle(point: &Point, points_below: Vec<bool>, frame: u16) -> Option<
         // se
         return Some(Point(point.x() + 1, point.y() + 1));
     }
-    // sw
-    if points_below[0] {
+    if adjacent.sw {
         return Some(Point(point.x() - 1, point.y() + 1));
     }
-    // se
-    if points_below[2] {
+    if adjacent.se {
         return Some(Point(point.x() + 1, point.y() + 1));
     }
 
@@ -97,28 +102,27 @@ fn main() {
         for i in 0..vec.len() {
             let new_point = drop_or_settle(
                 &vec[i],
-                vec![
-                    // sw
-                    vec[i].x() > 1
+                Adjacent {
+                    w: false, // TODO
+                    sw: vec[i].x() > 1
                         && vec[i].y() < height
                         && vec
                             .iter()
                             .position(|r| r.x() == vec[i].x() - 1 && r.y() == vec[i].y() + 1)
                             .is_none(),
-                    // s
-                    vec[i].y() < height
+                    s: vec[i].y() < height
                         && vec
                             .iter()
                             .position(|r| r.x() == vec[i].x() && r.y() == vec[i].y() + 1)
                             .is_none(),
-                    // se
-                    vec[i].x() < width
+                    se: vec[i].x() < width
                         && vec[i].y() < height
                         && vec
                             .iter()
                             .position(|r| r.x() == vec[i].x() + 1 && r.y() == vec[i].y() + 1)
                             .is_none(),
-                ],
+                    e: false, // TODO
+                },
                 frames,
             );
 
