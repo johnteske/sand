@@ -11,15 +11,32 @@ use std::{cmp, thread, time};
 mod point;
 use point::Point;
 
+enum Material {
+    Sand,
+    // Water,
+}
+
+struct Cell {
+    x: u16,
+    y: u16,
+    material: Material,
+}
+
+impl Cell {
+    fn new(material: Material, x: u16, y: u16) -> Self {
+        Cell { x, y, material }
+    }
+}
+
 struct Adjacent {
-    w: bool,
+    // w: bool,
     sw: bool,
     s: bool,
     se: bool,
-    e: bool,
+    // e: bool,
 }
 
-fn drop_or_settle(point: &Point, adjacent: Adjacent, frame: u16) -> Option<Point> {
+fn drop_or_settle(point: Point, adjacent: Adjacent, frame: u16) -> Option<Point> {
     let is_even = (frame & 1) == 0;
 
     // drop
@@ -28,18 +45,11 @@ fn drop_or_settle(point: &Point, adjacent: Adjacent, frame: u16) -> Option<Point
     }
 
     // settle
-    if adjacent.sw && adjacent.se {
-        if is_even {
-            // sw
-            return Some(Point(point.x() - 1, point.y() + 1));
-        }
-        // se
-        return Some(Point(point.x() + 1, point.y() + 1));
-    }
-    if adjacent.sw {
+    // choose sw on even frames, se on odd frames, if both sw/se are available
+    if adjacent.sw && (!adjacent.se || is_even) {
         return Some(Point(point.x() - 1, point.y() + 1));
     }
-    if adjacent.se {
+    if adjacent.se && (!adjacent.sw || !is_even) {
         return Some(Point(point.x() + 1, point.y() + 1));
     }
 
@@ -66,7 +76,7 @@ fn main() {
     write!(stdout, "{}", color::Fg(color::Yellow)).unwrap();
 
     // array of materials
-    let mut vec: Vec<Point> = Vec::with_capacity(area as usize);
+    let mut vec: Vec<Cell> = Vec::with_capacity(area as usize);
     // TODO add a single-cell border around the screen to avoid the need to boundary-check
     // --which would also help the coordinates of termion being 1,1-origin
 
@@ -82,8 +92,8 @@ fn main() {
         let x: u16 = (x + ((width / 2) as f64)) as u16;
         let y: u16 = (y + ((height / 2) as f64)) as u16;
 
-        if vec.iter().position(|r| r.x() == x && r.y() == y).is_none() {
-            vec.push(Point(x, y));
+        if vec.iter().position(|r| r.x == x && r.y == y).is_none() {
+            vec.push(Cell::new(Material::Sand, x, y));
         }
     }
 
@@ -98,30 +108,30 @@ fn main() {
         moves = 0;
 
         // TODO sort by y
-        vec.sort_by(|a, b| b.y().partial_cmp(&a.y()).unwrap());
+        //vec.sort_by(|a, b| b.y().partial_cmp(&a.y()).unwrap());
         for i in 0..vec.len() {
             let new_point = drop_or_settle(
-                &vec[i],
+                Point(vec[i].x, vec[i].y),
                 Adjacent {
-                    w: false, // TODO
-                    sw: vec[i].x() > 1
-                        && vec[i].y() < height
+                    // w: false, // TODO
+                    sw: vec[i].x > 1
+                        && vec[i].y < height
                         && vec
                             .iter()
-                            .position(|r| r.x() == vec[i].x() - 1 && r.y() == vec[i].y() + 1)
+                            .position(|r| r.x == vec[i].x - 1 && r.y == vec[i].y + 1)
                             .is_none(),
-                    s: vec[i].y() < height
+                    s: vec[i].y < height
                         && vec
                             .iter()
-                            .position(|r| r.x() == vec[i].x() && r.y() == vec[i].y() + 1)
+                            .position(|r| r.x == vec[i].x && r.y == vec[i].y + 1)
                             .is_none(),
-                    se: vec[i].x() < width
-                        && vec[i].y() < height
+                    se: vec[i].x < width
+                        && vec[i].y < height
                         && vec
                             .iter()
-                            .position(|r| r.x() == vec[i].x() + 1 && r.y() == vec[i].y() + 1)
+                            .position(|r| r.x == vec[i].x + 1 && r.y == vec[i].y + 1)
                             .is_none(),
-                    e: false, // TODO
+                    // e: false, // TODO
                 },
                 frames,
             );
@@ -131,10 +141,13 @@ fn main() {
                     moves += 1;
                     // erase glyph before move
                     // TODO only erase if this position will be empty
-                    write!(stdout, "{}{}", cursor::Goto(vec[i].x(), vec[i].y()), " ").unwrap();
-                    vec[i] = p;
+                    write!(stdout, "{}{}", cursor::Goto(vec[i].x, vec[i].y), " ").unwrap();
+                    //vec[i] = p;
+                    let Point(x, y) = p;
+                    vec[i].x = x;
+                    vec[i].y = y;
                     // write glyph
-                    write!(stdout, "{}{}", cursor::Goto(vec[i].x(), vec[i].y()), "■").unwrap();
+                    write!(stdout, "{}{}", cursor::Goto(vec[i].x, vec[i].y), "■").unwrap();
                 }
                 None => {}
             }
