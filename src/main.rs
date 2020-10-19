@@ -12,6 +12,7 @@ mod point;
 use point::Point;
 
 enum Material {
+    Bedrock,
     Sand,
     // Water,
 }
@@ -77,8 +78,17 @@ fn main() {
 
     // array of materials
     let mut vec: Vec<Cell> = Vec::with_capacity(area as usize);
-    // TODO add a single-cell border around the screen to avoid the need to boundary-check
-    // --which would also help the coordinates of termion being 1,1-origin
+
+    // add a single-cell border
+    // to avoid the need to boundary-check
+    for i in 0..height {
+        vec.push(Cell::new(Material::Bedrock, 0, i));
+        vec.push(Cell::new(Material::Bedrock, width + 1, i));
+    }
+    for i in 1..width {
+        vec.push(Cell::new(Material::Bedrock, i, 0));
+        vec.push(Cell::new(Material::Bedrock, i, height + 1));
+    }
 
     // populate screen
     let mut rng = rand::thread_rng();
@@ -97,6 +107,9 @@ fn main() {
         }
     }
 
+    // TODO sort by y, if not per frame then at the start?
+    // vec.sort_by(|a, b| b.y.partial_cmp(&a.y).unwrap());
+
     let mut moves = 1; // how many moves were made
     loop {
         // exit if nothing moved or
@@ -107,26 +120,27 @@ fn main() {
 
         moves = 0;
 
-        // TODO sort by y
-        //vec.sort_by(|a, b| b.y().partial_cmp(&a.y()).unwrap());
+        // TODO this sort is expensive
+        // vec.sort_by(|a, b| b.y.partial_cmp(&a.y).unwrap());
+
         for i in 0..vec.len() {
+            if let Material::Bedrock = vec[i].material {
+                continue;
+            }
             let new_point = drop_or_settle(
                 Point(vec[i].x, vec[i].y),
                 Adjacent {
                     // w: false, // TODO
                     sw: vec[i].x > 1
-                        && vec[i].y < height
                         && vec
                             .iter()
                             .position(|r| r.x == vec[i].x - 1 && r.y == vec[i].y + 1)
                             .is_none(),
-                    s: vec[i].y < height
-                        && vec
-                            .iter()
-                            .position(|r| r.x == vec[i].x && r.y == vec[i].y + 1)
-                            .is_none(),
+                    s: vec
+                        .iter()
+                        .position(|r| r.x == vec[i].x && r.y == vec[i].y + 1)
+                        .is_none(),
                     se: vec[i].x < width
-                        && vec[i].y < height
                         && vec
                             .iter()
                             .position(|r| r.x == vec[i].x + 1 && r.y == vec[i].y + 1)
