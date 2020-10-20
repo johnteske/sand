@@ -11,23 +11,8 @@ use std::{cmp, thread, time};
 mod point;
 use point::Point;
 
-enum Material {
-    Bedrock,
-    Sand,
-    // Water,
-}
-
-struct Cell {
-    x: u16,
-    y: u16,
-    material: Material,
-}
-
-impl Cell {
-    fn new(material: Material, x: u16, y: u16) -> Self {
-        Cell { x, y, material }
-    }
-}
+mod cells;
+use cells::Material;
 
 struct Adjacent {
     // w: bool,
@@ -66,7 +51,6 @@ fn main() {
 
     let (width, height) = terminal_width_height();
     let shortest = cmp::min(width, height);
-    let area = width * height;
 
     const FPS: u64 = 8;
     let delay = time::Duration::from_millis(1000 / FPS);
@@ -77,18 +61,7 @@ fn main() {
     write!(stdout, "{}", color::Fg(color::Yellow)).unwrap();
 
     // array of materials
-    let mut vec: Vec<Cell> = Vec::with_capacity(area as usize);
-
-    // add a single-cell border
-    // to avoid the need to boundary-check
-    for i in 0..height {
-        vec.push(Cell::new(Material::Bedrock, 0, i));
-        vec.push(Cell::new(Material::Bedrock, width + 1, i));
-    }
-    for i in 1..width {
-        vec.push(Cell::new(Material::Bedrock, i, 0));
-        vec.push(Cell::new(Material::Bedrock, i, height + 1));
-    }
+    let mut vec = cells::Cells::new(width, height);
 
     // populate screen
     let mut rng = rand::thread_rng();
@@ -102,8 +75,8 @@ fn main() {
         let x: u16 = (x + ((width / 2) as f64)) as u16;
         let y: u16 = (y + ((height / 2) as f64)) as u16;
 
-        if vec.iter().position(|r| r.x == x && r.y == y).is_none() {
-            vec.push(Cell::new(Material::Sand, x, y));
+        if vec.get(x, y).is_none() {
+            vec.add(x, y, Material::Sand);
         }
     }
 
@@ -123,28 +96,19 @@ fn main() {
         // TODO this sort is expensive
         // vec.sort_by(|a, b| b.y.partial_cmp(&a.y).unwrap());
 
-        for i in 0..vec.len() {
-            if let Material::Bedrock = vec[i].material {
+        for i in 0..vec.cells.len() {
+            if let Material::Bedrock = vec.cells[i].material {
                 continue;
             }
+            let x = vec.cells[i].x;
+            let y = vec.cells[i].y;
             let new_point = drop_or_settle(
-                Point(vec[i].x, vec[i].y),
+                Point(x, y),
                 Adjacent {
                     // w: false, // TODO
-                    sw: vec[i].x > 1
-                        && vec
-                            .iter()
-                            .position(|r| r.x == vec[i].x - 1 && r.y == vec[i].y + 1)
-                            .is_none(),
-                    s: vec
-                        .iter()
-                        .position(|r| r.x == vec[i].x && r.y == vec[i].y + 1)
-                        .is_none(),
-                    se: vec[i].x < width
-                        && vec
-                            .iter()
-                            .position(|r| r.x == vec[i].x + 1 && r.y == vec[i].y + 1)
-                            .is_none(),
+                    sw: vec.get(x - 1, y + 1).is_none(),
+                    s: vec.get(x, y + 1).is_none(),
+                    se: vec.get(x + 1, y + 1).is_none(),
                     // e: false, // TODO
                 },
                 frames,
@@ -155,13 +119,13 @@ fn main() {
                     moves += 1;
                     // erase glyph before move
                     // TODO only erase if this position will be empty
-                    write!(stdout, "{}{}", cursor::Goto(vec[i].x, vec[i].y), " ").unwrap();
-                    //vec[i] = p;
-                    let Point(x, y) = p;
-                    vec[i].x = x;
-                    vec[i].y = y;
+                    write!(stdout, "{}{}", cursor::Goto(x, y), " ").unwrap();
+                    vec.cells[i].x = p.0;
+                    vec.cells[i].y = p.1;
                     // write glyph
-                    write!(stdout, "{}{}", cursor::Goto(vec[i].x, vec[i].y), "■").unwrap();
+                    let x = vec.cells[i].x;
+                    let y = vec.cells[i].y;
+                    write!(stdout, "{}{}", cursor::Goto(x, y), "■").unwrap();
                 }
                 None => {}
             }
