@@ -45,6 +45,14 @@ impl Cells {
         self.cells.push(Cell::new(material, x, y));
     }
 
+    pub fn at_index(&mut self, i: usize) -> &Cell {
+        return &self.cells[i];
+    }
+    pub fn move_index(&mut self, i: usize, x: u16, y: u16) {
+        self.cells[i].x = x;
+        self.cells[i].y = y;
+    }
+
     pub fn get(&self, x: u16, y: u16) -> Option<usize> {
         self.cells.iter().position(|c| c.x == x && c.y == y)
     }

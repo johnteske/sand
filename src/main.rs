@@ -97,11 +97,11 @@ fn main() {
         // vec.sort_by(|a, b| b.y.partial_cmp(&a.y).unwrap());
 
         for i in 0..vec.cells.len() {
-            if let Material::Bedrock = vec.cells[i].material {
+            if let Material::Bedrock = vec.at_index(i).material {
                 continue;
             }
-            let x = vec.cells[i].x;
-            let y = vec.cells[i].y;
+            let x = vec.at_index(i).x;
+            let y = vec.at_index(i).y;
             let new_point = drop_or_settle(
                 Point(x, y),
                 Adjacent {
@@ -120,11 +120,11 @@ fn main() {
                     // erase glyph before move
                     // TODO only erase if this position will be empty
                     write!(stdout, "{}{}", cursor::Goto(x, y), " ").unwrap();
-                    vec.cells[i].x = p.0;
-                    vec.cells[i].y = p.1;
+                    vec.move_index(i, p.x(), p.y());
+
                     // write glyph
-                    let x = vec.cells[i].x;
-                    let y = vec.cells[i].y;
+                    let x = vec.at_index(i).x;
+                    let y = vec.at_index(i).y;
                     write!(stdout, "{}{}", cursor::Goto(x, y), "■").unwrap();
                 }
                 None => {}
