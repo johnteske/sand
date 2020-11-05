@@ -27,6 +27,10 @@ where
         write!(self.stdout, "{}{}", clear::All, cursor::Hide).unwrap();
     }
 
+    pub fn write_at(&mut self, s: &str, x: u16, y: u16) {
+        write!(self.stdout, "{}{}", cursor::Goto(x, y), s).unwrap();
+    }
+
     pub fn flush(&mut self) {
         self.stdout.flush().unwrap();
     }

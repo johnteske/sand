@@ -44,6 +44,7 @@ fn main() {
         moves += 0;
 
         // write to stdout
+        display.write_at("■", 1, 1);
         display.flush();
 
         // wait
