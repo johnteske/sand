@@ -14,9 +14,9 @@ fn main() {
     let stdout = stdout.lock();
     let stdout = stdout.into_raw_mode().unwrap();
 
-    let mut t = term::Term::new(stdout);
+    let mut display = term::Term::new(stdout);
 
-    let (width, height) = t.size();
+    let (width, height) = display.size();
     let area = width * height;
 
     const FPS: u64 = 8;
@@ -24,7 +24,7 @@ fn main() {
     let max_frames = 99;
     let mut frames = 0;
 
-    t.clear();
+    display.clear();
 
     // array of materials
     let mut vec: Vec<Material> = Vec::with_capacity(area as usize);
@@ -44,7 +44,7 @@ fn main() {
         moves += 0;
 
         // write to stdout
-        t.flush().unwrap();
+        display.flush();
 
         // wait
         thread::sleep(delay);
@@ -53,9 +53,7 @@ fn main() {
         frames += 1;
     }
 
-    t.reset();
-
     input::wait_for_any_key();
 
-    t.restore();
+    display.restore();
 }

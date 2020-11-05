@@ -19,15 +19,20 @@ where
         Term { stdout }
     }
 
+    pub fn size(&self) -> (u16, u16) {
+        termion::terminal_size().expect("Unable to get terminal size")
+    }
+
     pub fn clear(&mut self) {
         write!(self.stdout, "{}{}", clear::All, cursor::Hide).unwrap();
     }
 
-    pub fn reset(&mut self) {
-        write!(self.stdout, "{}", style::Reset).unwrap();
+    pub fn flush(&mut self) {
+        self.stdout.flush().unwrap();
     }
 
     pub fn restore(&mut self) {
+        self.reset();
         write!(
             self.stdout,
             "{}{}{}",
@@ -38,29 +43,7 @@ where
         .expect("Unable to restore terminal");
     }
 
-    pub fn size(&self) -> (u16, u16) {
-        termion::terminal_size().expect("Unable to get terminal size")
-    }
-
-    // should this be private?
-    pub fn flush(&mut self) -> std::io::Result<()> {
-        self.stdout.flush()
-    }
-    pub fn wr(&mut self, s: &str) {
-        write!(self.stdout, "{}{}", s, cursor::Goto(1, 1)).unwrap();
+    fn reset(&mut self) {
+        write!(self.stdout, "{}", style::Reset).unwrap();
     }
 }
-
-//impl<W> Write for Term<W>
-//where
-//    W: Write,
-//{
-//    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-//                self.stdout.write(buf)
-//                    }
-//
-//    fn flush(&mut self) -> std::io::Result<()> {
-//                self.stdout.flush()
-//                    }
-//
-//}
