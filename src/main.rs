@@ -19,7 +19,7 @@ fn main() {
 
     let mut t = term::Term::new(stdout);
 
-    let (width, height) = terminal_width_height();
+    let (width, height) = t.size();
     let area = width * height;
 
     const FPS: u64 = 8;
@@ -67,8 +67,4 @@ fn main() {
     }
 
     t.restore();
-}
-
-fn terminal_width_height() -> (u16, u16) {
-    termion::terminal_size().expect("Unable to get terminal size")
 }

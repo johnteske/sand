@@ -38,6 +38,10 @@ where
         .expect("Unable to restore terminal");
     }
 
+    pub fn size(&self) -> (u16, u16) {
+        termion::terminal_size().expect("Unable to get terminal size")
+    }
+
     // should this be private?
     pub fn flush(&mut self) -> std::io::Result<()> {
         self.stdout.flush()
