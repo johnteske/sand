@@ -1,21 +1,18 @@
-use termion::event::Key;
-use termion::input::TermRead;
-use termion::raw::IntoRawMode;
-
-use std::io::{stdin, stdout};
+use std::io::stdout;
 use std::{thread, time};
+
+use termion::raw::IntoRawMode;
 
 mod material;
 use material::{Material, Sand};
 
+mod input;
 mod term;
 
 fn main() {
     let stdout = stdout();
     let stdout = stdout.lock();
     let stdout = stdout.into_raw_mode().unwrap();
-
-    let stdin = stdin();
 
     let mut t = term::Term::new(stdout);
 
@@ -58,13 +55,7 @@ fn main() {
 
     t.reset();
 
-    for c in stdin.keys() {
-        match c.unwrap() {
-            Key::Char('q') => break,
-            _ => t.wr("Press 'q' to exit"),
-        }
-        t.flush().unwrap();
-    }
+    input::wait_for_any_key();
 
     t.restore();
 }
