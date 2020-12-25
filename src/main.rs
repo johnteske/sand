@@ -1,18 +1,20 @@
 use rand::prelude::*;
-use termion::event::Key;
-use termion::input::TermRead;
-use termion::raw::IntoRawMode;
-use termion::{clear, color, cursor, style};
+//use termion::event::Key;
+//use termion::input::TermRead;
+//use termion::raw::IntoRawMode;
 
 use std::f64::consts::PI;
-use std::io::{stdin, stdout, Write};
+//use std::io::{stdin, stdout, Write};
 use std::{cmp, thread, time};
 
 mod point;
 use point::Point;
 
 mod cells;
-use cells::Material;
+use cells::{Cells, Material};
+
+mod renderer;
+use renderer::{RenderCommand, RenderMsg};
 
 struct Adjacent {
     // w: bool,
@@ -44,12 +46,16 @@ fn drop_or_settle(point: Point, adjacent: Adjacent, frame: u16) -> Option<Point>
 }
 
 fn main() {
-    let stdout = stdout();
-    let stdout = stdout.lock();
-    let mut stdout = stdout.into_raw_mode().unwrap();
-    let stdin = stdin();
+    //let r = renderer::new();
+    let renderer_tx = renderer::new();
 
-    let (width, height) = terminal_width_height();
+    //    let stdout = stdout();
+    //    let stdout = stdout.lock();
+    //    let mut stdout = stdout.into_raw_mode().unwrap();
+    //let stdin = stdin();
+
+    //let (width, height) = terminal_width_height();
+    let (width, height) = renderer::dimensions();
     let shortest = cmp::min(width, height);
 
     const FPS: u64 = 8;
@@ -57,11 +63,10 @@ fn main() {
     let max_frames = 99;
     let mut frames = 0;
 
-    write!(stdout, "{}{}", clear::All, cursor::Hide).unwrap();
-    write!(stdout, "{}", color::Fg(color::Yellow)).unwrap();
-
+    //write!(stdout, "{}{}", termion::clear::All, termion::cursor::Hide).unwrap();
+    //write!(stdout, "{}", termion::color::Fg(termion::color::Yellow)).unwrap();
     // array of materials
-    let mut vec = cells::Cells::new(width, height);
+    let mut vec = Cells::new(width, height);
 
     // populate screen
     let mut rng = rand::thread_rng();
@@ -116,23 +121,40 @@ fn main() {
 
             match new_point {
                 Some(p) => {
+                    //write!(stdout, "{}", termion::cursor::Goto(x, y)).unwrap();
                     moves += 1;
                     // erase glyph before move
                     // TODO only erase if this position will be empty
-                    write!(stdout, "{}{}", cursor::Goto(x, y), " ").unwrap();
+                    //renderer_tx.send("erase TODO at point".to_string());
+                    //write!(stdout, "{}", " ").unwrap();
                     vec.move_index(i, p.x(), p.y());
 
                     // write glyph
                     let x = vec.at_index(i).x;
                     let y = vec.at_index(i).y;
-                    write!(stdout, "{}{}", cursor::Goto(x, y), "■").unwrap();
+                    //r.put();
+                    renderer_tx
+                        .send(RenderMsg {
+                            command: RenderCommand::Put,
+                            point: Some(Point(x, y)),
+                        })
+                        .expect("could not send 'put'");
+                    //renderer_tx.send("put".to_string()).expect("could not send 'put'");
+                    //write!(stdout, "{}", "■").unwrap();
                 }
                 None => {}
             }
         }
 
         // write to stdout
-        stdout.flush().unwrap();
+        // r.render();
+        renderer_tx
+            .send(RenderMsg {
+                command: RenderCommand::Render,
+                point: None,
+            })
+            .expect("could not send 'render'");
+        //stdout.flush().unwrap();
 
         // wait
         thread::sleep(delay);
@@ -141,26 +163,22 @@ fn main() {
         frames += 1;
     }
 
-    write!(stdout, "{}", style::Reset).unwrap();
+    //write!(stdout, "{}", termion::style::Reset).unwrap();
 
-    for c in stdin.keys() {
-        match c.unwrap() {
-            Key::Char('q') => break,
-            _ => write!(stdout, "{}Press 'q' to exit", cursor::Goto(1, 1),).unwrap(),
-        }
-        stdout.flush().unwrap();
-    }
+    //    for c in stdin.keys() {
+    //        match c.unwrap() {
+    //            Key::Char('q') => break,
+    //            _ => write!(stdout, "{}Press 'q' to exit", termion::cursor::Goto(1, 1),).unwrap(),
+    //        }
+    //        stdout.flush().unwrap();
+    //    }
 
-    write!(
-        stdout,
-        "{}{}{}",
-        termion::clear::All,
-        cursor::Goto(1, 1),
-        termion::cursor::Show
-    )
-    .expect("Unable to restore terminal");
-}
-
-fn terminal_width_height() -> (u16, u16) {
-    termion::terminal_size().expect("Unable to get terminal size")
+    //    write!(
+    //        stdout,
+    //        "{}{}{}",
+    //        termion::clear::All,
+    //        termion::cursor::Goto(1, 1),
+    //        termion::cursor::Show
+    //    )
+    //.expect("Unable to restore terminal");
 }
